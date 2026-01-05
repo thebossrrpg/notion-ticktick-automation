@@ -32,7 +32,7 @@ let tickTickAccessToken = null;
 
 async function authenticateTickTick() {
   try {
-    const response = await axios.post('https://api.ticktick.com/api/v2/user/signon', {
+    const response = await axios.post('https://api.ticktick.com/api/v2/user/signon?wc=true&remember=true', {
       username: TICKTICK_USERNAME,
       password: TICKTICK_PASSWORD
     });
