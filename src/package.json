@@ -1,0 +1,16 @@
+{
+  "name": "notion-ticktick-sync",
+  "version": "1.0.0",
+  "description": "Sync Notion Priority changes to TickTick lists",
+  "main": "sync.js",
+  "scripts": {
+    "start": "node sync.js"
+  },
+  "dependencies": {
+    "@notionhq/client": "^2.2.15",
+    "google-spreadsheet": "^4.1.2",
+    "axios": "^1.6.5"
+  },
+  "author": "",
+  "license": "ISC"
+}
