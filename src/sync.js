@@ -115,7 +115,7 @@ async function createTickTickTask(title, listId) {
       },
       {
         headers: {
-          'Authorization': `Bearer ${tickTickAccessToken}`,
+          'Authorization': `Bearer ${TICKTICK_ACCESS_TOKEN}`,
           'Content-Type': 'application/json'
         }
       }
@@ -131,9 +131,6 @@ async function createTickTickTask(title, listId) {
 async function main() {
   try {
     console.log('Starting sync process...');
-    
-    // Authenticate TickTick
-    await authenticateTickTick();
     
     // Load cache
     const cache = await loadCache();
