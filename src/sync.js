@@ -1,5 +1,5 @@
 // Sync Notion Priority to TickTick
-// Simplified version using file-based cache
+// Uses file-based cache + INITIAL_SYNC_DONE flag + timestamped titles
 
 const { Client } = require('@notionhq/client');
 const axios = require('axios');
@@ -141,6 +141,8 @@ async function main() {
   try {
     console.log('Starting sync process...');
 
+    const INITIAL_SYNC_DONE = process.env.INITIAL_SYNC_DONE === 'true';
+
     // Load cache
     const cache = await loadCache();
     console.log(`Loaded cache with ${Object.keys(cache).length} entries`);
@@ -157,8 +159,19 @@ async function main() {
       const currentPriority = getPriority(page);
       const previousPriority = cache[pageId];
 
-      // Check if priority changed
-      if (currentPriority !== null && currentPriority !== previousPriority) {
+      // Skip if no priority set
+      if (currentPriority === null) {
+        continue;
+      }
+
+      // Primeiro run: só registrar no cache, sem criar tasks
+      if (!INITIAL_SYNC_DONE && previousPriority === undefined) {
+        cache[pageId] = currentPriority;
+        continue;
+      }
+
+      // Depois da sync inicial, criar tarefa apenas quando a prioridade mudar
+      if (currentPriority !== previousPriority) {
         console.log(`Priority changed for page ${pageId}: ${previousPriority} -> ${currentPriority}`);
 
         // Get list ID for this priority
@@ -167,7 +180,7 @@ async function main() {
           const baseTitle = getPageTitle(page);
           const urlProp = getPageUrlProperty(page);
 
-          // Carimbo de data/hora para distinguir re-runs
+          // Carimbo de data/hora para distinguir re-runs manuais
           const timestamp = new Date().toISOString().replace('T', ' ').replace(/\.\d+Z$/, ' UTC');
 
           let title;
