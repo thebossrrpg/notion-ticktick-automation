@@ -166,7 +166,14 @@ async function main() {
         if (listId) {
           const baseTitle = getPageTitle(page);
           const urlProp = getPageUrlProperty(page);
-          const title = urlProp ? `${baseTitle} (${urlProp})` : baseTitle;
+
+          let title;
+          if (urlProp) {
+              // título em formato de link Markdown
+              title = `[${baseTitle}](${urlProp})`;
+            } else {
+              title = baseTitle;
+            }
 
           await createTickTickTask(title, listId);
 
