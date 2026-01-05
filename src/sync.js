@@ -92,6 +92,27 @@ function getPageTitle(page) {
   }
 }
 
+// Get URL property
+function getPageUrlProperty(page) {
+  try {
+    const urlProperty = page.properties.URL || page.properties.Url || page.properties.Link;
+    if (!urlProperty) return null;
+
+    if (urlProperty.type === 'url') {
+      return urlProperty.url;
+    }
+
+    // Fallback se for texto simples
+    if (urlProperty.type === 'rich_text' && urlProperty.rich_text.length > 0) {
+      return urlProperty.rich_text.map(t => t.plain_text).join('');
+    }
+
+    return null;
+  } catch (error) {
+    return null;
+  }
+}
+
 // Create task in TickTick
 async function createTickTickTask(title, listId) {
   try {
