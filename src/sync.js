@@ -26,23 +26,6 @@ const CACHE_FILE = path.join(__dirname, '..', 'cache.json');
 // Initialize Notion client
 const notion = new Client({ auth: NOTION_API_KEY });
 
-// TickTick API authentication
-let tickTickAccessToken = null;
-
-async function authenticateTickTick() {
-  try {
-    const response = await axios.post('https://api.ticktick.com/api/v2/user/signon?wc=true&remember=true', {
-      username: TICKTICK_USERNAME,
-      password: TICKTICK_PASSWORD
-    });
-    tickTickAccessToken = response.data.token;
-    console.log('TickTick authenticated successfully');
-  } catch (error) {
-    console.error('TickTick authentication failed:', error.response?.data || error.message);
-    throw error;
-  }
-}
-
 // Load cache from file
 async function loadCache() {
   try {
@@ -77,7 +60,7 @@ function getPriority(page) {
   try {
     const priorityProperty = page.properties.Priority;
     if (!priorityProperty) return null;
-    
+
     // Handle different property types
     if (priorityProperty.type === 'select' && priorityProperty.select) {
       return priorityProperty.select.name;
@@ -94,10 +77,15 @@ function getPriority(page) {
 // Get page title
 function getPageTitle(page) {
   try {
-    const titleProperty = page.properties.Name || page.properties.Title || Object.values(page.properties).find(p => p.type === 'title');
+    const titleProperty =
+      page.properties.Name ||
+      page.properties.Title ||
+      Object.values(page.properties).find(p => p.type === 'title');
+
     if (!titleProperty || !titleProperty.title || titleProperty.title.length === 0) {
       return 'Untitled';
     }
+
     return titleProperty.title.map(t => t.plain_text).join('');
   } catch (error) {
     return 'Untitled';
@@ -131,27 +119,27 @@ async function createTickTickTask(title, listId) {
 async function main() {
   try {
     console.log('Starting sync process...');
-    
+
     // Load cache
     const cache = await loadCache();
     console.log(`Loaded cache with ${Object.keys(cache).length} entries`);
-    
+
     // Get all pages from Notion
     const pages = await getNotionPages();
     console.log(`Found ${pages.length} pages in Notion`);
-    
+
     let changesDetected = 0;
-    
+
     // Check each page for priority changes
     for (const page of pages) {
       const pageId = page.id;
       const currentPriority = getPriority(page);
       const previousPriority = cache[pageId];
-      
+
       // Check if priority changed
       if (currentPriority !== null && currentPriority !== previousPriority) {
         console.log(`Priority changed for page ${pageId}: ${previousPriority} -> ${currentPriority}`);
-        
+
         // Get list ID for this priority
         const listId = TICKTICK_LISTS[currentPriority];
         if (listId) {
@@ -161,16 +149,15 @@ async function main() {
         } else {
           console.warn(`No list ID configured for priority: ${currentPriority}`);
         }
-        
+
         // Update cache
         cache[pageId] = currentPriority;
       }
     }
-    
+
     // Save updated cache
     await saveCache(cache);
     console.log(`Sync completed. ${changesDetected} tasks created.`);
-    
   } catch (error) {
     console.error('Error in main process:', error);
     process.exit(1);
