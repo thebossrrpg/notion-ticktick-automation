@@ -8,35 +8,35 @@ on:
 jobs:
   sync:
     runs-on: ubuntu-latest
-    
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
-      
+
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: '20'
-      
+
       - name: Install dependencies
         run: |
           cd src
           npm install @notionhq/client @google-cloud/storage google-spreadsheet axios
-      
+
       - name: Run sync script
         env:
           NOTION_API_KEY: ${{ secrets.NOTION_API_KEY }}
           NOTION_DATABASE_ID: ${{ secrets.NOTION_DATABASE_ID }}
           GOOGLE_SHEETS_CREDENTIALS: ${{ secrets.GOOGLE_SHEETS_CREDENTIALS }}
           GOOGLE_SHEET_ID: ${{ secrets.GOOGLE_SHEET_ID }}
-            TICKTICK_ACCESS_TOKEN: ${{ secrets.TICKTICK_ACCESS_TOKEN }}
-            TICKTICK_LIST_PRIORITY_0: ${{ secrets.TICKTICK_LIST_PRIORITY_0 }}
-            TICKTICK_LIST_PRIORITY_1: ${{ secrets.TICKTICK_LIST_PRIORITY_1 }}
-            TICKTICK_LIST_PRIORITY_2: ${{ secrets.TICKTICK_LIST_PRIORITY_2 }}
-            TICKTICK_LIST_PRIORITY_3: ${{ secrets.TICKTICK_LIST_PRIORITY_3 }}
-            TICKTICK_LIST_PRIORITY_4: ${{ secrets.TICKTICK_LIST_PRIORITY_4 }}
-            TICKTICK_LIST_PRIORITY_5: ${{ secrets.TICKTICK_LIST_PRIORITY_5 }}
-            PAYLOAD: ${{ toJSON(github.event.client_payload) }}
+          TICKTICK_ACCESS_TOKEN: ${{ secrets.TICKTICK_ACCESS_TOKEN }}
+          TICKTICK_LIST_PRIORITY_0: ${{ secrets.TICKTICK_LIST_PRIORITY_0 }}
+          TICKTICK_LIST_PRIORITY_1: ${{ secrets.TICKTICK_LIST_PRIORITY_1 }}
+          TICKTICK_LIST_PRIORITY_2: ${{ secrets.TICKTICK_LIST_PRIORITY_2 }}
+          TICKTICK_LIST_PRIORITY_3: ${{ secrets.TICKTICK_LIST_PRIORITY_3 }}
+          TICKTICK_LIST_PRIORITY_4: ${{ secrets.TICKTICK_LIST_PRIORITY_4 }}
+          TICKTICK_LIST_PRIORITY_5: ${{ secrets.TICKTICK_LIST_PRIORITY_5 }}
+          PAYLOAD: ${{ toJSON(github.event.client_payload) }}
         run: |
           cd src
           node sync.js
