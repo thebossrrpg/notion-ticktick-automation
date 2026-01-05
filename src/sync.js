@@ -164,8 +164,12 @@ async function main() {
         // Get list ID for this priority
         const listId = TICKTICK_LISTS[currentPriority];
         if (listId) {
-          const title = getPageTitle(page);
+          const baseTitle = getPageTitle(page);
+          const urlProp = getPageUrlProperty(page);
+          const title = urlProp ? `${baseTitle} (${urlProp})` : baseTitle;
+
           await createTickTickTask(title, listId);
+
           changesDetected++;
         } else {
           console.warn(`No list ID configured for priority: ${currentPriority}`);
