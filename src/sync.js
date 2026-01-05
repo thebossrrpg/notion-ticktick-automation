@@ -167,16 +167,17 @@ async function main() {
           const baseTitle = getPageTitle(page);
           const urlProp = getPageUrlProperty(page);
 
+          // Carimbo de data/hora para distinguir re-runs
+          const timestamp = new Date().toISOString().replace('T', ' ').replace(/\.\d+Z$/, ' UTC');
+
           let title;
           if (urlProp) {
-              // título em formato de link Markdown
-              title = `[${baseTitle}](${urlProp})`;
-            } else {
-              title = baseTitle;
-            }
+            title = `${baseTitle} (${urlProp}) [${timestamp}]`;
+          } else {
+            title = `${baseTitle} [${timestamp}]`;
+          }
 
           await createTickTickTask(title, listId);
-
           changesDetected++;
         } else {
           console.warn(`No list ID configured for priority: ${currentPriority}`);
