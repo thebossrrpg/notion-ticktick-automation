@@ -29,14 +29,14 @@ jobs:
           NOTION_DATABASE_ID: ${{ secrets.NOTION_DATABASE_ID }}
           GOOGLE_SHEETS_CREDENTIALS: ${{ secrets.GOOGLE_SHEETS_CREDENTIALS }}
           GOOGLE_SHEET_ID: ${{ secrets.GOOGLE_SHEET_ID }}
-          TICKTICK_API_KEY: ${{ secrets.TICKTICK_API_KEY }}
-          TICKTICK_LIST_0: ${{ secrets.TICKTICK_LIST_0 }}
-          TICKTICK_LIST_1: ${{ secrets.TICKTICK_LIST_1 }}
-          TICKTICK_LIST_2: ${{ secrets.TICKTICK_LIST_2 }}
-          TICKTICK_LIST_3: ${{ secrets.TICKTICK_LIST_3 }}
-          TICKTICK_LIST_4: ${{ secrets.TICKTICK_LIST_4 }}
-          TICKTICK_LIST_5: ${{ secrets.TICKTICK_LIST_5 }}
-          PAYLOAD: ${{ toJSON(github.event.client_payload) }}
+            TICKTICK_ACCESS_TOKEN: ${{ secrets.TICKTICK_ACCESS_TOKEN }}
+            TICKTICK_LIST_PRIORITY_0: ${{ secrets.TICKTICK_LIST_PRIORITY_0 }}
+            TICKTICK_LIST_PRIORITY_1: ${{ secrets.TICKTICK_LIST_PRIORITY_1 }}
+            TICKTICK_LIST_PRIORITY_2: ${{ secrets.TICKTICK_LIST_PRIORITY_2 }}
+            TICKTICK_LIST_PRIORITY_3: ${{ secrets.TICKTICK_LIST_PRIORITY_3 }}
+            TICKTICK_LIST_PRIORITY_4: ${{ secrets.TICKTICK_LIST_PRIORITY_4 }}
+            TICKTICK_LIST_PRIORITY_5: ${{ secrets.TICKTICK_LIST_PRIORITY_5 }}
+            PAYLOAD: ${{ toJSON(github.event.client_payload) }}
         run: |
           cd src
           node sync.js
