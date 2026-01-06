@@ -1,4 +1,4 @@
-  ## 🚀 Como Usar 
+  ## 🚀 Como Usar
 
 Depois de configurar tudo (tokens, secrets, etc.), é só seguir esses passos simples:
 
