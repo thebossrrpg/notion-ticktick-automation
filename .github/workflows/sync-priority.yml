@@ -4,6 +4,8 @@ on:
   repository_dispatch:
     types: [notion_update]
   workflow_dispatch:
+  schedule:
+    - cron: "*/5 * * * *"   # roda a cada 5 minutos
 
 jobs:
   sync:
