@@ -43,4 +43,3 @@ jobs:
         run: |
           cd src
           node sync.js
-
