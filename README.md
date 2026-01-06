@@ -67,6 +67,7 @@ Quando a propriedade é alterada para um dos valores 0, 1, 2, 3, 4 ou 5, o scrip
     -   Código aberto e fácil de modificar/forkar.
 
 ## 📁 Estrutura do Repositório
+
 notion-ticktick-automation/                ← Raiz do repositório
 ├── .github/
 │   └── workflows/
@@ -79,7 +80,7 @@ notion-ticktick-automation/                ← Raiz do repositório
 ├── gerar_token.py                         ← Script Python completo para gerar token do TickTick (com mais opções)
 ├── gerar_token_simples.py                 ← Versão leve do script de token (sem dependências externas, mais fácil de rodar)
 ├── README.md                              ← Documentação principal (este arquivo que você está lendo)
-└── LICENSE                                ← (opcional) Licença MIT completa do projeto
+└── LICENSE                                ← Licença MIT completa do projeto
 
 ## ⚙️ Configuração (passo a passo)
 
