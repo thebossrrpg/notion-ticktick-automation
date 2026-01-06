@@ -1,5 +1,5 @@
 // Sync Notion Priority to TickTick
-// Uses file-based cache + INITIAL_SYNC_DONE flag + timestamped titles
+// Uses file-based cache + priority comparison
 
 const { Client } = require('@notionhq/client');
 const axios = require('axios');
@@ -32,7 +32,7 @@ async function loadCache() {
     const data = await fs.readFile(CACHE_FILE, 'utf8');
     return JSON.parse(data);
   } catch (error) {
-    // File doesn't exist yet
+    // File doesn't exist yet or invalid JSON
     return {};
   }
 }
@@ -69,7 +69,6 @@ async function getNotionPages() {
     throw error;
   }
 }
-
 
 // Extract priority value from Notion page
 function getPriority(page) {
@@ -157,8 +156,6 @@ async function main() {
   try {
     console.log('Starting sync process...');
 
-    const INITIAL_SYNC_DONE = process.env.INITIAL_SYNC_DONE === 'true';
-
     // Load cache
     const cache = await loadCache();
     console.log(`Loaded cache with ${Object.keys(cache).length} entries`);
@@ -180,13 +177,7 @@ async function main() {
         continue;
       }
 
-      // Primeiro run: só registrar no cache, sem criar tasks
-      if (!INITIAL_SYNC_DONE && previousPriority === undefined) {
-        cache[pageId] = currentPriority;
-        continue;
-      }
-
-      // Depois da sync inicial, criar tarefa apenas quando a prioridade mudar
+      // Criar tarefa sempre que a prioridade atual for diferente da registrada no cache
       if (currentPriority !== previousPriority) {
         console.log(`Priority changed for page ${pageId}: ${previousPriority} -> ${currentPriority}`);
 
@@ -198,7 +189,6 @@ async function main() {
 
           let title;
           if (urlProp) {
-            // título + espaço + URL entre parênteses
             title = `${baseTitle} (${urlProp})`;
           } else {
             title = baseTitle;
