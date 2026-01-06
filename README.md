@@ -2,7 +2,7 @@
 
 Este projeto automatiza a sincronização de alterações em uma propriedade específica (ex: "Prioridade") de um banco de dados do Notion para tarefas no Tick-Tick.
 
-Quando a propriedade é alterada para um dos valores 0, 1, 2, 3, 4 ou 5, o script cria uma tarefa correspondente no Tick-Tick, na lista apropriada ao valor.
+Quando a propriedade é alterada para um dos valores 0, 1, 2, 3, 4 ou 5, o script cria uma tarefa correspondente no Tick-Tick, na lista apropriada ao valor.   
 
 ## Funcionalidade
 
