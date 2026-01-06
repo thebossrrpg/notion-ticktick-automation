@@ -38,7 +38,9 @@ jobs:
           TICKTICK_LIST_PRIORITY_3: ${{ secrets.TICKTICK_LIST_PRIORITY_3 }}
           TICKTICK_LIST_PRIORITY_4: ${{ secrets.TICKTICK_LIST_PRIORITY_4 }}
           TICKTICK_LIST_PRIORITY_5: ${{ secrets.TICKTICK_LIST_PRIORITY_5 }}
+          INITIAL_SYNC_DONE: ${{ secrets.INITIAL_SYNC_DONE }}
           PAYLOAD: ${{ toJSON(github.event.client_payload) }}
         run: |
           cd src
           node sync.js
+
