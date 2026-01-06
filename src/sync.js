@@ -9,7 +9,7 @@ const path = require("path");
 // Environment variables
 const NOTION_API_KEY = process.env.NOTION_API_KEY;
 const NOTION_DATABASE_ID = process.env.NOTION_DATABASE_ID;
-const TICKTICK_ACCESS_TOKEN = process.env.TICKTICK_ACCESS_TOKEN;
+const TICKTICK_ACCESS_TOKEN = process.env.TICKTICKACCESSTOKEN;
 
 // TickTick List IDs
 const TICKTICK_LISTS = {
