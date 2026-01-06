@@ -180,14 +180,12 @@ async function main() {
           const baseTitle = getPageTitle(page);
           const urlProp = getPageUrlProperty(page);
 
-          // Carimbo de data/hora para distinguir re-runs manuais
-          const timestamp = new Date().toISOString().replace('T', ' ').replace(/\.\d+Z$/, ' UTC');
-
           let title;
           if (urlProp) {
-            title = `${baseTitle} (${urlProp}) [${timestamp}]`;
+            // título + espaço + URL entre parênteses
+            title = `${baseTitle} (${urlProp})`;
           } else {
-            title = `${baseTitle} [${timestamp}]`;
+            title = baseTitle;
           }
 
           await createTickTickTask(title, listId);
