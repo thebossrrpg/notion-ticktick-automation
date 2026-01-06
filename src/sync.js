@@ -42,18 +42,34 @@ async function saveCache(cache) {
   await fs.writeFile(CACHE_FILE, JSON.stringify(cache, null, 2));
 }
 
-// Get all pages from Notion database
+// Get all pages from Notion database (with pagination)
 async function getNotionPages() {
+  const allResults = [];
+  let cursor = undefined;
+
   try {
-    const response = await notion.databases.query({
-      database_id: NOTION_DATABASE_ID,
-    });
-    return response.results;
+    while (true) {
+      const response = await notion.databases.query({
+        database_id: NOTION_DATABASE_ID,
+        start_cursor: cursor,
+      });
+
+      allResults.push(...response.results);
+
+      if (!response.has_more) {
+        break;
+      }
+
+      cursor = response.next_cursor;
+    }
+
+    return allResults;
   } catch (error) {
     console.error('Error fetching Notion pages:', error.message);
     throw error;
   }
 }
+
 
 // Extract priority value from Notion page
 function getPriority(page) {
