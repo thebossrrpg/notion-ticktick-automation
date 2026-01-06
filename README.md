@@ -17,7 +17,7 @@ Quando a propriedade é alterada para um dos valores 0, 1, 2, 3, 4 ou 5, o scrip
     -   5 → Lista configurada para 5
 -   Evita duplicatas rastreando itens já processados.
 -   Executa automaticamente a cada 15 minutos via GitHub Actions.
-
+    
 ## Requisitos
 
 -   Node.js (para executar o script localmente)
