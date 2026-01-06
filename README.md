@@ -68,19 +68,23 @@ Quando a propriedade é alterada para um dos valores 0, 1, 2, 3, 4 ou 5, o scrip
 
 ## 📁 Estrutura do Repositório
 
-notion-ticktick-automation/                ← Raiz do repositório
-├── .github/
-│   └── workflows/
-│       └── sync-priority.yml              ← Configuração do GitHub Actions (roda o script a cada 15 minutos)
-├── src/
-│   └── sync.js                            ← Script principal em JavaScript (faz toda a mágica: lê Notion → cria tarefa no TickTick)
-├── .env.example                           ← Exemplo de arquivo de variáveis de ambiente (para testes locais)
-├── COMO-USAR.md                           ← Instruções detalhadas de uso (em português)
-├── GUIA-CONFIGURACAO.md                   ← Guia passo a passo para configurar tokens, secrets, etc.
-├── gerar_token.py                         ← Script Python completo para gerar token do TickTick (com mais opções)
-├── gerar_token_simples.py                 ← Versão leve do script de token (sem dependências externas, mais fácil de rodar)
-├── README.md                              ← Documentação principal (este arquivo que você está lendo)
-└── LICENSE                                ← Licença MIT completa do projeto
+```text
+notion-ticktick-automation/      ← Raiz do repositório
+├─ .github/
+│  └─ workflows/
+│     └─ sync-priority.yml       ← Configuração do GitHub Actions (roda o script a cada evento)
+│
+├─ src/
+│  └─ sync.js                    ← Script principal em JavaScript (lê Notion → cria tarefa no TickTick)
+│
+├─ .env.example                  ← Exemplo de arquivo de variáveis de ambiente (para testes locais)
+├─ COMO-USAR.md                  ← Instruções de uso do projeto (em português)
+├─ GUIA-CONFIGURACAO.md          ← Guia passo a passo para configurar tokens, secrets, etc.
+├─ gerar_token.py                ← Script Python avançado para gerar token do TickTick (com mais opções)
+├─ gerar_token_simples.py        ← Versão leve do script de token (sem dependências externas, mais fácil de rodar)
+├─ README.md                     ← Documentação principal (o que você está lendo)
+└─ LICENSE                       ← Licença MIT do projeto
+
 
 ## ⚙️ Configuração (passo a passo)
 
