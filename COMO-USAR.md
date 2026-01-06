@@ -74,7 +74,7 @@ Depois de configurar tudo (tokens, secrets, etc.), é só seguir esses passos si
     -   Verifique se o workflow está habilitado (às vezes fica pausado em forks).
     -   Vá em Actions → clique no workflow → se tiver mensagem "Workflows aren't being run on this forked repository", clique em "I understand, run workflows".
 
-### 🔒 Segurança (Como manter tudo seguro)
+## 🔒 Segurança (Como manter tudo seguro)
 
 Essa automação lida com tokens sensíveis (Notion e TickTick), então é importante seguir boas práticas para evitar problemas. Aqui vai o que você precisa saber e fazer:
 
