@@ -1,10 +1,10 @@
 // Sync Notion Priority to TickTick
 // Uses file-based cache + priority comparison
 
-const { Client } = require('@notionhq/client');
-const axios = require('axios');
-const fs = require('fs').promises;
-const path = require('path');
+const { Client } = require("@notionhq/client");
+const axios = require("axios");
+const fs = require("fs").promises;
+const path = require("path");
 
 // Environment variables
 const NOTION_API_KEY = process.env.NOTION_API_KEY;
@@ -13,15 +13,15 @@ const TICKTICK_ACCESS_TOKEN = process.env.TICKTICK_ACCESS_TOKEN;
 
 // TickTick List IDs
 const TICKTICK_LISTS = {
-  '0': process.env.TICKTICK_LIST_PRIORITY_0,
-  '1': process.env.TICKTICK_LIST_PRIORITY_1,
-  '2': process.env.TICKTICK_LIST_PRIORITY_2,
-  '3': process.env.TICKTICK_LIST_PRIORITY_3,
-  '4': process.env.TICKTICK_LIST_PRIORITY_4,
-  '5': process.env.TICKTICK_LIST_PRIORITY_5
+  "0": process.env.TICKTICK_LIST_PRIORITY_0,
+  "1": process.env.TICKTICK_LIST_PRIORITY_1,
+  "2": process.env.TICKTICK_LIST_PRIORITY_2,
+  "3": process.env.TICKTICK_LIST_PRIORITY_3,
+  "4": process.env.TICKTICK_LIST_PRIORITY_4,
+  "5": process.env.TICKTICK_LIST_PRIORITY_5,
 };
 
-const CACHE_FILE = path.join(__dirname, '..', 'cache.json');
+const CACHE_FILE = path.join(__dirname, "..", "cache.json");
 
 // Initialize Notion client
 const notion = new Client({ auth: NOTION_API_KEY });
@@ -29,7 +29,7 @@ const notion = new Client({ auth: NOTION_API_KEY });
 // Load cache from file
 async function loadCache() {
   try {
-    const data = await fs.readFile(CACHE_FILE, 'utf8');
+    const data = await fs.readFile(CACHE_FILE, "utf8");
     return JSON.parse(data);
   } catch (error) {
     // File doesn't exist yet or invalid JSON
@@ -65,7 +65,7 @@ async function getNotionPages() {
 
     return allResults;
   } catch (error) {
-    console.error('Error fetching Notion pages:', error.message);
+    console.error("Error fetching Notion pages:", error.message);
     throw error;
   }
 }
@@ -77,10 +77,10 @@ function getPriority(page) {
     if (!priorityProperty) return null;
 
     // Handle different property types
-    if (priorityProperty.type === 'select' && priorityProperty.select) {
+    if (priorityProperty.type === "select" && priorityProperty.select) {
       return priorityProperty.select.name;
     }
-    if (priorityProperty.type === 'number') {
+    if (priorityProperty.type === "number") {
       return String(priorityProperty.number);
     }
     return null;
@@ -95,15 +95,15 @@ function getPageTitle(page) {
     const titleProperty =
       page.properties.Name ||
       page.properties.Title ||
-      Object.values(page.properties).find(p => p.type === 'title');
+      Object.values(page.properties).find((p) => p.type === "title");
 
     if (!titleProperty || !titleProperty.title || titleProperty.title.length === 0) {
-      return 'Untitled';
+      return "Untitled";
     }
 
-    return titleProperty.title.map(t => t.plain_text).join('');
+    return titleProperty.title.map((t) => t.plain_text).join("");
   } catch (error) {
-    return 'Untitled';
+    return "Untitled";
   }
 }
 
@@ -113,13 +113,13 @@ function getPageUrlProperty(page) {
     const urlProperty = page.properties.URL || page.properties.Url || page.properties.Link;
     if (!urlProperty) return null;
 
-    if (urlProperty.type === 'url') {
+    if (urlProperty.type === "url") {
       return urlProperty.url;
     }
 
     // Fallback se for texto simples
-    if (urlProperty.type === 'rich_text' && urlProperty.rich_text.length > 0) {
-      return urlProperty.rich_text.map(t => t.plain_text).join('');
+    if (urlProperty.type === "rich_text" && urlProperty.rich_text.length > 0) {
+      return urlProperty.rich_text.map((t) => t.plain_text).join("");
     }
 
     return null;
@@ -132,29 +132,31 @@ function getPageUrlProperty(page) {
 async function createTickTickTask(title, listId) {
   try {
     const response = await axios.post(
-      'https://api.ticktick.com/open/v1/task',
+      "https://api.ticktick.com/open/v1/task",
       {
         title: title,
-        projectId: listId
+        projectId: listId,
       },
       {
         headers: {
-          'Authorization': `Bearer ${TICKTICK_ACCESS_TOKEN}`,
-          'Content-Type': 'application/json'
-        }
+          Authorization: `Bearer ${TICKTICK_ACCESS_TOKEN}`,
+          "Content-Type": "application/json",
+        },
       }
     );
     console.log(`Task created in TickTick: ${title}`);
     return response.data;
   } catch (error) {
-    console.error(`Error creating TickTick task: ${error.response?.data || error.message}`);
+    console.error(
+      `Error creating TickTick task: ${error.response?.data || error.message}`
+    );
     throw error;
   }
 }
 
 async function main() {
   try {
-    console.log('Starting sync process...');
+    console.log("Starting sync process...");
 
     // Load cache
     const cache = await loadCache();
@@ -169,8 +171,22 @@ async function main() {
     // Check each page for priority changes
     for (const page of pages) {
       const pageId = page.id;
-      const currentPriority = getPriority(page);
+      const currentPriorityRaw = getPriority(page);
+      const currentPriority =
+        typeof currentPriorityRaw === "string"
+          ? currentPriorityRaw.trim()
+          : currentPriorityRaw;
       const previousPriority = cache[pageId];
+
+      // DEBUG: ver o que está vindo
+      console.log(
+        "DEBUG priority",
+        pageId,
+        "current:",
+        JSON.stringify(currentPriority),
+        "previous:",
+        JSON.stringify(previousPriority)
+      );
 
       // Skip if no priority set
       if (currentPriority === null) {
@@ -179,7 +195,9 @@ async function main() {
 
       // Criar tarefa sempre que a prioridade atual for diferente da registrada no cache
       if (currentPriority !== previousPriority) {
-        console.log(`Priority changed for page ${pageId}: ${previousPriority} -> ${currentPriority}`);
+        console.log(
+          `Priority changed for page ${pageId}: ${previousPriority} -> ${currentPriority}`
+        );
 
         // Get list ID for this priority
         const listId = TICKTICK_LISTS[currentPriority];
@@ -209,7 +227,7 @@ async function main() {
     await saveCache(cache);
     console.log(`Sync completed. ${changesDetected} tasks created.`);
   } catch (error) {
-    console.error('Error in main process:', error);
+    console.error("Error in main process:", error);
     process.exit(1);
   }
 }
