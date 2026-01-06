@@ -1,160 +1,104 @@
-# 🎯 Como Usar - Integração Notion → TickTick
+  ## 🚀 Como Usar
 
-## 🚀 SOLUÇÃO 100% GRATUITA - GitHub Actions
+Depois de configurar tudo (tokens, secrets, etc.), é só seguir esses passos simples:
 
-Esta integração já está **PRONTA** e configurada no GitHub Actions!
-Roda automaticamente **a cada 15 minutos** sem custo algum.
+1.  Teste localmente (recomendado para ver se está tudo certo) Abra o terminal na pasta do projeto e rode: node src/sync.js.
+    
+    Agora vá no seu banco de dados do Notion, altere a propriedade de prioridade de alguma página para 0, 1, 2, 3, 4 ou 5. Em poucos segundos, você vai ver a tarefa aparecer na lista correspondente do Tick-Tick.
+    
+2.  Automação automática O GitHub Actions já está configurado para executar o script a cada 15 minutos. Você não precisa fazer mais nada! Para conferir as execuções: Vá na aba Actions do seu repositório → clique em “sync-priority.yml” → veja o histórico de runs.
+    
+3.  O que acontece agora Toda vez que você mudar a propriedade de prioridade no Notion, em até 15 minutos a tarefa vai ser criada automaticamente no Tick-Tick na lista correta. O script evita criar tarefas duplicadas sozinho.
 
----
+## 🔧 Manutenção e Solução de Problemas
+1.  **Verifique o status do GitHub Actions**
+    -   Vá na aba **Actions** do seu repositório.
+    -   Clique em **sync-priority.yml**.
+    -   Veja o histórico de execuções.
+    -   Se aparecer erro (ícone vermelho), clique no job para ler o log.
+    -   Erros comuns: token expirado (TickTick) ou integração desconectada no Notion.
+    
+2.  **Atualize o token do TickTick**
+    -   Tokens OAuth2 do TickTick expiram (geralmente a cada 90 dias ou antes).
+    -   Rode novamente o script gerar_token_simples.py.
+    -   Copie o novo **access token**.
+    -   Atualize o secret TICKTICK_ACCESS_TOKEN nas Settings → Secrets and variables → Actions.
 
-## ✅ O Que Foi Feito
+3.  **Atualize o token do Notion (se necessário)**
+    -   Tokens do Notion são permanentes, mas se você recriar a integração, atualize o secret NOTION_TOKEN.
 
-1. ✅ Código JavaScript completo em `src/sync.js`
-2. ✅ GitHub Actions workflow configurado (`.github/workflows/sync-priority.yml`)
-3. ✅ Cache em arquivo local (sem precisar Google Sheets API paga)
-4. ✅ Detecção de mudanças APENAS na propriedade Priority
-5. ✅ Roteamento automático para listas do TickTick (0-5)
+4.  **Monitore limites da API**
+    -   Notion: ~1000 requisições/dia (gratuito).
+    -   TickTick: limites generosos no plano gratuito.
+    -   Se o script rodar muito (ex: >500 páginas alteradas por dia), aumente o intervalo no .yml (de 15min para 30min).
 
----
+5.  **Backup e segurança**
+    -   Nunca commit o .env ou tokens no GitHub.
+    -   Faça backup dos seus secrets (guarde em lugar seguro).
+    -   Se trocar de conta TickTick ou Notion, atualize tudo.
 
-## 📝 O Que VOCÊ Precisa Fazer
+6.  **Teste mensal rápido**
+    -   Uma vez por mês, mude uma prioridade no Notion e espere 15 minutos.
+    -   Confirme que a tarefa aparece no TickTick.
+    -   Se não aparecer, verifique o Actions log.
 
-### PASSO 1: Configurar Notion
+## ❓ Troubleshooting
 
-1. Vá em https://www.notion.so/my-integrations
-2. Clique em "+ New integration"
-3. Dê um nome: **"TickTick Sync"**
-4. Copie o **Internal Integration Token** (secret_...)
-5. Abra sua database "Mods" no Notion
-6. Clique em **...** no canto superior direito
-7. Selecione **"Add connections"**
-8. Escolha a integração "TickTick Sync"
+-   **Nada acontece depois de mudar a prioridade no Notion**
+    -   Espere até 15 minutos (o script roda a cada 15 min).
+    -   Vá na aba **Actions** do repositório → clique em **sync-priority.yml**.
+    -   Veja se a última execução está verde (sucesso) ou vermelha (erro).
+    -   Se estiver vermelha, clique no job e leia o log — ele sempre diz exatamente o que deu errado.
+-   **Erro "Invalid authentication credentials" ou "401 Unauthorized"**
+    -   Token do TickTick expirou (mais comum!)
+    -   Rode novamente python gerar_token_simples.py.
+    -   Atualize o secret TICKTICK_ACCESS_TOKEN no GitHub.
+-   **Erro "Invalid token" ou "Integration not authorized" no Notion**
+    -   Verifique se a integração está compartilhada com o banco de dados correto.
+    -   Atualize o secret NOTION_TOKEN se você criou uma nova integração.
+-   **Tarefa criada na lista errada ou não criada**
+    -   Confira o secret TICKTICK_LIST_IDS.
+    -   O formato precisa ser JSON válido, ex: {"0":"ID_da_Inbox","1":"ID_lista_1","2":"ID_lista_2","3":"ID_lista_3","4":"ID_lista_4","5":"ID_lista_5"}
+    -   Para descobrir os IDs das listas no TickTick:
+        -   Abra o app/web do TickTick.
+        -   Clique com botão direito na lista → Inspecionar elemento → procure por "data-id" ou use o script de teste local.
+-   **Script não roda localmente (node src/sync.js)**
+    -   Certifique-se de ter criado o arquivo .env com todas as variáveis
+    -   Instale Node.js se não tiver.
+    -   Abra o terminal na pasta do projeto antes de rodar o comando.
+-   **Muitas tarefas duplicadas**
+    -   Normal nas primeiras execuções (ele sincroniza tudo que já tem prioridade).
+    -   Depois da primeira rodada, duplicatas param de aparecer.
+    -   Se continuar, limpe o histórico manualmente no TickTick.
+-   **GitHub Actions não está rodando**
+    -   Verifique se o workflow está habilitado (às vezes fica pausado em forks).
+    -   Vá em Actions → clique no workflow → se tiver mensagem "Workflows aren't being run on this forked repository", clique em "I understand, run workflows".
 
-**ID da Database:** `95ddda2e2aa447b8bdcdfa5a97eb9870`
+### 🔒 Segurança (Como manter tudo seguro)
 
----
+Essa automação lida com tokens sensíveis (Notion e TickTick), então é importante seguir boas práticas para evitar problemas. Aqui vai o que você precisa saber e fazer:
 
-### PASSO 2: Obter IDs das Listas do TickTick
-
-Você precisa dos IDs das suas 6 listas do TickTick (Prioridade 0 a 5).
-
-**OPÇÃO A - Via API (Recomendado):**
-
-1. Abra o navegador
-2. Vá para: https://api.ticktick.com/api/v2/projects
-3. Faça login se solicitado
-4. Você verá um JSON com todas as suas listas
-5. Procure pelos nomes "Prioridade 0", "Prioridade 1", etc.
-6. Copie o `id` de cada uma
-
-**OPÇÃO B - Via Inspeção:**
-
-1. Abra o TickTick no navegador
-2. Clique em uma lista (ex: "Prioridade 1")
-3. Olhe na URL, o ID está depois de `/project/`
-4. Exemplo: `ticktick.com/project/12345abc` → ID = `12345abc`
-
----
-
-### PASSO 3: Adicionar Secrets no GitHub
-
-1. Vá em: https://github.com/thebossrrpg/notion-ticktick-automation/settings/secrets/actions
-2. Clique em **"New repository secret"**
-3. Adicione os seguintes secrets:
-
-**NOTION_API_KEY**
-- Cole o token da integração do Notion (secret_...)
-
-**NOTION_DATABASE_ID**
-- Cole: `95ddda2e2aa447b8bdcdfa5a97eb9870`
-
-**TICKTICK_USERNAME**
-- Seu email/username do TickTick
-
-**TICKTICK_PASSWORD**
-- Sua senha do TickTick
-
-**TICKTICK_LIST_PRIORITY_0**
-- ID da lista "Prioridade 0"
-
-**TICKTICK_LIST_PRIORITY_1**
-- ID da lista "Prioridade 1"
-
-**TICKTICK_LIST_PRIORITY_2**
-- ID da lista "Prioridade 2"
-
-**TICKTICK_LIST_PRIORITY_3**
-- ID da lista "Prioridade 3"
-
-**TICKTICK_LIST_PRIORITY_4**
-- ID da lista "Prioridade 4"
-
-**TICKTICK_LIST_PRIORITY_5**
-- ID da lista "Prioridade 5"
-
----
-
-### PASSO 4: Ativar GitHub Actions
-
-1. Vá em: https://github.com/thebossrrpg/notion-ticktick-automation/actions
-2. Se houver um botão **"I understand my workflows, go ahead and enable them"**, clique nele
-3. Pronto! A integração começará a rodar automaticamente
-
----
-
-## 🔍 Como Funciona
-
-1. **A cada 15 minutos**, o GitHub Actions executa o script
-2. Busca todas as páginas da sua database "Mods"
-3. Compara o valor atual de **Priority** com o valor anterior (salvo em cache)
-4. Se detectar mudança:
-   - Cria uma tarefa no TickTick na lista correspondente
-   - Atualiza o cache
-5. Se não houve mudança, não faz nada
-
-**Exemplo:**
-- Página "Mod XYZ" tinha Priority = 3
-- Você muda para Priority = 1
-- Na próxima execução (máx 15 min), uma tarefa "Mod XYZ" é criada na lista "Prioridade 1" do TickTick
-
----
-
-## 🛠️ Monitoramento
-
-**Ver se está funcionando:**
-1. Acesse: https://github.com/thebossrrpg/notion-ticktick-automation/actions
-2. Veja os logs das execuções
-3. Verde = sucesso, Vermelho = erro
-
-**Testar manualmente:**
-1. Vá em Actions
-2. Clique em "Sync Notion Priority to TickTick"
-3. Clique em "Run workflow" → "Run workflow"
-4. Aguarde e veja os logs
-
----
-
-## ❓ FAQ
-
-**P: Quanto custa?**
-R: **ZERO!** GitHub Actions é gratuito para repositórios públicos.
-
-**P: Posso mudar a frequência?**
-R: Sim! Edite `.github/workflows/sync-priority.yml` e mude a linha `- cron: '*/15 * * * *'`.
-
-**P: E se eu mudar a Priority várias vezes rápido?**
-R: Apenas a última mudança será detectada (na próxima execução).
-
-**P: Posso adicionar mais prioridades?**
-R: Sim! Basta adicionar mais secrets (TICKTICK_LIST_PRIORITY_6, etc.) e atualizar o código.
-
-**P: A integração para se eu não usar?**
-R: Não! Ela continua rodando automaticamente para sempre.
-
----
-
-## 🎉 PRONTO!
-
-Após configurar os secrets, a integração já estará funcionando!
-
-Teste mudando o Priority de uma página no Notion e aguarde até 15 minutos. ✨
+1.  **Nunca exponha seus tokens**
+    -   Os secrets do GitHub (NOTION_TOKEN, TICKTICK_ACCESS_TOKEN, etc.) ficam criptografados e nunca aparecem nos logs.
+    -   Nunca commit o arquivo .env no repositório (ele já está no .gitignore, então está protegido).
+    -   Não compartilhe prints de tela com tokens visíveis.
+    
+2.  **Princípio do menor privilégio**
+    -   A integração do Notion tem apenas acesso ao banco de dados que você compartilhou (e só leitura/escrita necessária).
+    -   Se possível, crie uma integração dedicada só para essa automação (não use a mesma de outros projetos).
+    -   No TickTick, o token tem acesso total à conta — por isso atualize-o periodicamente.
+3.  **Rotação de tokens**
+    -   TickTick: renove o token a cada 3–6 meses (rode o script de geração novamente e atualize o secret).
+    -   Notion: o token é permanente, mas se suspeitar de vazamento, crie uma nova integração e substitua o secret.
+4.  **Acesso ao repositório**
+    -   Se o repositório for público: qualquer pessoa pode ver o código, mas NÃO os secrets (eles ficam escondidos).
+    -   Se for privado: só você (e quem você adicionar) tem acesso.
+    -   Evite adicionar colaboradores desnecessários.
+5.  **Em caso de suspeita de comprometimento**
+    -   Revogue imediatamente o token do TickTick (faça logout em todos os dispositivos no app).
+    -   Crie nova integração no Notion e atualize o secret.
+    -   Mude sua senha do TickTick e ative 2FA se ainda não tiver.
+6.  **Dicas extras de segurança**
+    -   Ative autenticação de dois fatores (2FA) tanto no GitHub quanto no TickTick.
+    -   Guarde uma cópia segura dos seus secrets em um gerenciador de senhas (ex: Bitwarden, 1Password).
+    -   Não rode o script localmente em computadores públicos ou compartilhados.
