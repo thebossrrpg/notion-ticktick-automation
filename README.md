@@ -83,7 +83,8 @@ notion-ticktick-automation/      ← Raiz do repositório
 ├─ gerar_token.py                ← Script Python avançado para gerar token do TickTick (com mais opções)
 ├─ gerar_token_simples.py        ← Versão leve do script de token (sem dependências externas, mais fácil de rodar)
 ├─ README.md                     ← Documentação principal (o que você está lendo)
-└─ LICENSE                       ← Licença MIT do projeto````
+└─ LICENSE                       ← Licença MIT do projeto
+```
 
 
 ## ⚙️ Configuração (passo a passo)
