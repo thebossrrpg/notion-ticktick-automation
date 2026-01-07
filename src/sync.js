@@ -277,7 +277,9 @@ async function main() {
           const urlProp = getPageUrlProperty(page);
 
           const cleanBase = sanitizeTitle(baseTitle);
-          const finalTitle = urlProp ? `${cleanBase} (${urlProp})` : cleanBase;
+          const finalTitle = urlProp
+            ? `[${cleanBase}] (${urlProp})`
+            : cleanBase;
 
           try {
             await createTickTickTask(finalTitle, listId, pageId);
