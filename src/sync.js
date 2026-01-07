@@ -28,10 +28,19 @@ const CACHE_FILE = path.join(__dirname, "..", "cache.json");
 
 // Rate limit settings
 const MAX_PER_RUN = 90; // máximo de tasks criadas por execução
-const DELAY_BETWEEN_TASKS_MS = 10 * 1000; // 10 segundos entre tasks
+const DELAY_BETWEEN_TASKS_MS = 3000; // 3 segundos entre tasks
 
 function delay(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+async function appendFailedTaskLog(line) {
+  const logPath = path.join(__dirname, "..", "failed-tasks.log");
+  try {
+    await fs.appendFile(logPath, line + "\n", "utf8");
+  } catch (e) {
+    console.error("Error writing failed-tasks.log:", e.message);
+  }
 }
 
 // Initialize Notion client
@@ -162,12 +171,9 @@ function sanitizeTitle(rawTitle) {
   return collapsed.slice(0, 200);
 }
 
-// Create task in TickTick (sanitiza só o texto base, mantém URL intacta)
-async function createTickTickTask(baseTitle, urlProp, listId) {
+// Cria task no TickTick; recebe título final pronto e ID da página
+async function createTickTickTask(finalTitle, listId, pageId) {
   try {
-    const cleanBase = sanitizeTitle(baseTitle);
-    const finalTitle = urlProp ? `${cleanBase} (${urlProp})` : cleanBase;
-
     const response = await axios.post(
       "https://api.ticktick.com/open/v1/task",
       {
@@ -185,13 +191,19 @@ async function createTickTickTask(baseTitle, urlProp, listId) {
     console.log(`Task created in TickTick: ${finalTitle}`);
     return response.data;
   } catch (error) {
+    const errData = error.response?.data || {};
     console.error(
       `Error creating TickTick task: ${
-        error.response?.data
-          ? JSON.stringify(error.response.data)
-          : error.message
+        Object.keys(errData).length ? JSON.stringify(errData) : error.message
       }`
     );
+
+    // Loga 500 em arquivo com pageId + título + listId
+    if (error.response?.status === 500) {
+      const logLine = `[${new Date().toISOString()}] pageId=${pageId} title="${finalTitle}" listId=${listId}`;
+      await appendFailedTaskLog(logLine);
+    }
+
     throw error;
   }
 }
@@ -264,16 +276,18 @@ async function main() {
           const baseTitle = getPageTitle(page);
           const urlProp = getPageUrlProperty(page);
 
-      try {
-        await createTickTickTask(baseTitle, urlProp, listId);
-        createdThisRun++;
-        changesDetected++;
-      } catch (error) {
-        console.error(
-          `TickTick returned error for page ${pageId} (priority ${currentPriority}). Skipping and continuing.`
-        );
-        // não dá throw aqui; só segue para o próximo
-      }
+          const cleanBase = sanitizeTitle(baseTitle);
+          const finalTitle = urlProp ? `${cleanBase} (${urlProp})` : cleanBase;
+
+          try {
+            await createTickTickTask(finalTitle, listId, pageId);
+            createdThisRun++;
+            changesDetected++;
+          } catch (error) {
+            console.error(
+              `TickTick returned error for page ${pageId} (priority ${currentPriority}). Skipping and continuing.`
+            );
+          }
 
           // Delay entre tasks para suavizar chamadas
           if (createdThisRun < MAX_PER_RUN) {
