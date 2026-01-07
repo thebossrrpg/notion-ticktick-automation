@@ -162,15 +162,16 @@ function sanitizeTitle(rawTitle) {
   return collapsed.slice(0, 200);
 }
 
-// Create task in TickTick
-async function createTickTickTask(title, listId) {
+// Create task in TickTick (sanitiza só o texto base, mantém URL intacta)
+async function createTickTickTask(baseTitle, urlProp, listId) {
   try {
-    const cleanTitle = sanitizeTitle(title);
+    const cleanBase = sanitizeTitle(baseTitle);
+    const finalTitle = urlProp ? `${cleanBase} (${urlProp})` : cleanBase;
 
     const response = await axios.post(
       "https://api.ticktick.com/open/v1/task",
       {
-        title: cleanTitle,
+        title: finalTitle,
         projectId: listId,
       },
       {
@@ -181,7 +182,7 @@ async function createTickTickTask(title, listId) {
       }
     );
 
-    console.log(`Task created in TickTick: ${cleanTitle}`);
+    console.log(`Task created in TickTick: ${finalTitle}`);
     return response.data;
   } catch (error) {
     console.error(
@@ -262,9 +263,8 @@ async function main() {
         if (listId) {
           const baseTitle = getPageTitle(page);
           const urlProp = getPageUrlProperty(page);
-          const title = urlProp ? `${baseTitle} (${urlProp})` : baseTitle;
 
-          await createTickTickTask(title, listId);
+          await createTickTickTask(baseTitle, urlProp, listId);
 
           createdThisRun++;
           changesDetected++;
