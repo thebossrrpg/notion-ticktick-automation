@@ -10,16 +10,18 @@ on:
 jobs:
   sync:
     runs-on: ubuntu-latest
-
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
       - name: Restore cache.json
-        uses: actions/cache@v4
+        id: cache-restore
+        uses: actions/cache/restore@v4
         with:
           path: cache.json
-          key: notion-ticktick-cache
+          key: notion-ticktick-cache-
+          restore-keys: |
+            notion-ticktick-cache-
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -48,3 +50,10 @@ jobs:
           PAYLOAD: ${{ toJSON(github.event.client_payload) }}
         run: |
           node src/sync.js
+
+      - name: Save cache.json
+        if: always()
+        uses: actions/cache/save@v4
+        with:
+          path: cache.json
+          key: notion-ticktick-cache-${{ github.run_number }}
