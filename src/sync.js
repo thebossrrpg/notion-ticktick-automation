@@ -91,9 +91,11 @@ function getPriority(page) {
     if (priorityProperty.type === "select" && priorityProperty.select) {
       return priorityProperty.select.name;
     }
+
     if (priorityProperty.type === "number") {
       return String(priorityProperty.number);
     }
+
     return null;
   } catch (error) {
     return null;
@@ -108,7 +110,11 @@ function getPageTitle(page) {
       page.properties.Title ||
       Object.values(page.properties).find((p) => p.type === "title");
 
-    if (!titleProperty || !titleProperty.title || titleProperty.title.length === 0) {
+    if (
+      !titleProperty ||
+      !titleProperty.title ||
+      titleProperty.title.length === 0
+    ) {
       return "Untitled";
     }
 
@@ -121,7 +127,9 @@ function getPageTitle(page) {
 // Get URL property
 function getPageUrlProperty(page) {
   try {
-    const urlProperty = page.properties.URL || page.properties.Url || page.properties.Link;
+    const urlProperty =
+      page.properties.URL || page.properties.Url || page.properties.Link;
+
     if (!urlProperty) return null;
 
     if (urlProperty.type === "url") {
@@ -129,7 +137,10 @@ function getPageUrlProperty(page) {
     }
 
     // Fallback se for texto simples
-    if (urlProperty.type === "rich_text" && urlProperty.rich_text.length > 0) {
+    if (
+      urlProperty.type === "rich_text" &&
+      urlProperty.rich_text.length > 0
+    ) {
       return urlProperty.rich_text.map((t) => t.plain_text).join("");
     }
 
@@ -139,13 +150,27 @@ function getPageUrlProperty(page) {
   }
 }
 
+// Sanitize title: mantém só alfanuméricos (incluindo acentos) e espaço
+function sanitizeTitle(rawTitle) {
+  if (!rawTitle) return "Sem titulo";
+
+  // Remove tudo que não for letra, número, acento ou espaço
+  const onlyBasic = rawTitle.replace(/[^0-9A-Za-zÀ-ÿ ]+/g, " ");
+  const collapsed = onlyBasic.replace(/\s+/g, " ").trim();
+
+  // Garante que não fica gigante
+  return collapsed.slice(0, 200);
+}
+
 // Create task in TickTick
 async function createTickTickTask(title, listId) {
   try {
+    const cleanTitle = sanitizeTitle(title);
+
     const response = await axios.post(
       "https://api.ticktick.com/open/v1/task",
       {
-        title: title,
+        title: cleanTitle,
         projectId: listId,
       },
       {
@@ -155,12 +180,15 @@ async function createTickTickTask(title, listId) {
         },
       }
     );
-    console.log(`Task created in TickTick: ${title}`);
+
+    console.log(`Task created in TickTick: ${cleanTitle}`);
     return response.data;
   } catch (error) {
     console.error(
       `Error creating TickTick task: ${
-        error.response?.data ? JSON.stringify(error.response.data) : error.message
+        error.response?.data
+          ? JSON.stringify(error.response.data)
+          : error.message
       }`
     );
     throw error;
@@ -190,11 +218,13 @@ async function main() {
     // Check each page for priority changes
     for (const page of pages) {
       const pageId = page.id;
+
       const currentPriorityRaw = getPriority(page);
       const currentPriority =
         typeof currentPriorityRaw === "string"
           ? currentPriorityRaw.trim()
           : currentPriorityRaw;
+
       const previousPriority = cache[pageId];
 
       // DEBUG: ver o que está vindo
@@ -214,7 +244,9 @@ async function main() {
 
       // Limite por execução
       if (createdThisRun >= MAX_PER_RUN) {
-        console.log("Reached MAX_PER_RUN, stopping new TickTick tasks for this run.");
+        console.log(
+          "Reached MAX_PER_RUN, stopping new TickTick tasks for this run."
+        );
         break;
       }
 
@@ -226,13 +258,14 @@ async function main() {
 
         // Get list ID for this priority
         const listId = TICKTICK_LISTS[currentPriority];
+
         if (listId) {
           const baseTitle = getPageTitle(page);
           const urlProp = getPageUrlProperty(page);
-
           const title = urlProp ? `${baseTitle} (${urlProp})` : baseTitle;
 
           await createTickTickTask(title, listId);
+
           createdThisRun++;
           changesDetected++;
 
@@ -244,7 +277,9 @@ async function main() {
             await delay(DELAY_BETWEEN_TASKS_MS);
           }
         } else {
-          console.warn(`No list ID configured for priority: ${currentPriority}`);
+          console.warn(
+            `No list ID configured for priority: ${currentPriority}`
+          );
         }
 
         // Update cache
@@ -254,6 +289,7 @@ async function main() {
 
     // Save updated cache
     await saveCache(cache);
+
     console.log(
       `Sync completed. ${changesDetected} tasks created, ${createdThisRun} in this run.`
     );
