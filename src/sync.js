@@ -1,5 +1,5 @@
 // Sync Notion Priority to TickTick
-// Uses file-based cache + priority comparison
+// Uses file-based cache + priority comparison + rate limiting (MAX_PER_RUN + delay)
 
 const { Client } = require("@notionhq/client");
 const axios = require("axios");
@@ -9,6 +9,9 @@ const path = require("path");
 // Environment variables
 const NOTION_API_KEY = process.env.NOTION_API_KEY;
 const NOTION_DATABASE_ID = process.env.NOTION_DATABASE_ID;
+
+// ATENÇÃO: nome da env precisa bater com o secret no GitHub
+// Ex.: env: TICKTICKACCESSTOKEN: ${{ secrets.TICKTICKACCESSTOKEN }}
 const TICKTICK_ACCESS_TOKEN = process.env.TICKTICKACCESSTOKEN;
 
 // TickTick List IDs
@@ -22,6 +25,14 @@ const TICKTICK_LISTS = {
 };
 
 const CACHE_FILE = path.join(__dirname, "..", "cache.json");
+
+// Rate limit settings
+const MAX_PER_RUN = 90; // máximo de tasks criadas por execução
+const DELAY_BETWEEN_TASKS_MS = 10 * 1000; // 10 segundos entre tasks
+
+function delay(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
 
 // Initialize Notion client
 const notion = new Client({ auth: NOTION_API_KEY });
@@ -148,7 +159,9 @@ async function createTickTickTask(title, listId) {
     return response.data;
   } catch (error) {
     console.error(
-      `Error creating TickTick task: ${error.response?.data || error.message}`
+      `Error creating TickTick task: ${
+        error.response?.data ? JSON.stringify(error.response.data) : error.message
+      }`
     );
     throw error;
   }
@@ -157,6 +170,11 @@ async function createTickTickTask(title, listId) {
 async function main() {
   try {
     console.log("Starting sync process...");
+
+    if (!TICKTICK_ACCESS_TOKEN) {
+      console.error("TICKTICK_ACCESS_TOKEN is not set. Aborting.");
+      process.exit(1);
+    }
 
     // Load cache
     const cache = await loadCache();
@@ -167,6 +185,7 @@ async function main() {
     console.log(`Found ${pages.length} pages in Notion`);
 
     let changesDetected = 0;
+    let createdThisRun = 0;
 
     // Check each page for priority changes
     for (const page of pages) {
@@ -193,6 +212,12 @@ async function main() {
         continue;
       }
 
+      // Limite por execução
+      if (createdThisRun >= MAX_PER_RUN) {
+        console.log("Reached MAX_PER_RUN, stopping new TickTick tasks for this run.");
+        break;
+      }
+
       // Criar tarefa sempre que a prioridade atual for diferente da registrada no cache
       if (currentPriority !== previousPriority) {
         console.log(
@@ -205,15 +230,19 @@ async function main() {
           const baseTitle = getPageTitle(page);
           const urlProp = getPageUrlProperty(page);
 
-          let title;
-          if (urlProp) {
-            title = `${baseTitle} (${urlProp})`;
-          } else {
-            title = baseTitle;
-          }
+          const title = urlProp ? `${baseTitle} (${urlProp})` : baseTitle;
 
           await createTickTickTask(title, listId);
+          createdThisRun++;
           changesDetected++;
+
+          // Delay entre tasks para suavizar chamadas
+          if (createdThisRun < MAX_PER_RUN) {
+            console.log(
+              `Waiting ${DELAY_BETWEEN_TASKS_MS / 1000} seconds before next task...`
+            );
+            await delay(DELAY_BETWEEN_TASKS_MS);
+          }
         } else {
           console.warn(`No list ID configured for priority: ${currentPriority}`);
         }
@@ -225,7 +254,9 @@ async function main() {
 
     // Save updated cache
     await saveCache(cache);
-    console.log(`Sync completed. ${changesDetected} tasks created.`);
+    console.log(
+      `Sync completed. ${changesDetected} tasks created, ${createdThisRun} in this run.`
+    );
   } catch (error) {
     console.error("Error in main process:", error);
     process.exit(1);
