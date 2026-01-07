@@ -264,10 +264,16 @@ async function main() {
           const baseTitle = getPageTitle(page);
           const urlProp = getPageUrlProperty(page);
 
-          await createTickTickTask(baseTitle, urlProp, listId);
-
-          createdThisRun++;
-          changesDetected++;
+      try {
+        await createTickTickTask(baseTitle, urlProp, listId);
+        createdThisRun++;
+        changesDetected++;
+      } catch (error) {
+        console.error(
+          `TickTick returned error for page ${pageId} (priority ${currentPriority}). Skipping and continuing.`
+        );
+        // não dá throw aqui; só segue para o próximo
+      }
 
           // Delay entre tasks para suavizar chamadas
           if (createdThisRun < MAX_PER_RUN) {
