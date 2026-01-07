@@ -15,6 +15,12 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      - name: Restore cache.json
+        uses: actions/cache@v4
+        with:
+          path: cache.json
+          key: notion-ticktick-cache
+
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
@@ -23,7 +29,7 @@ jobs:
       - name: Install dependencies
         run: |
           cd src
-          npm install @notionhq/client @google-cloud/storage google-spreadsheet axios
+          npm install @notionhq/client axios
 
       - name: Run sync script
         env:
@@ -41,5 +47,4 @@ jobs:
           INITIAL_SYNC_DONE: ${{ secrets.INITIAL_SYNC_DONE }}
           PAYLOAD: ${{ toJSON(github.event.client_payload) }}
         run: |
-          cd src
-          node sync.js
+          node src/sync.js
