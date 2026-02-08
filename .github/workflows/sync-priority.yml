@@ -6,12 +6,10 @@ on:
     - cron: "*/5 * * * *"
   workflow_dispatch:
 
-# ✅ Evita fila e garante "sempre o mais recente" a cada 5 min
 concurrency:
   group: sync-priority
   cancel-in-progress: true
 
-# ✅ Necessário para publicar em gh-pages
 permissions:
   contents: write
 
@@ -66,7 +64,7 @@ jobs:
           path: cache.json
           key: notion-ticktick-cache-${{ github.run_number }}
 
-      # (mantido) enviar analyzer_notionsync.json como artifact (opcional)
+      # Mantido: artifact (útil pra debug), mas não é o canal principal
       - name: Upload analyzer_notionsync artifact
         if: always()
         uses: actions/upload-artifact@v4
@@ -74,7 +72,7 @@ jobs:
           name: analyzer_notionsync
           path: analyzer_notionsync.json
 
-      # ✅ NOVO: valida se o arquivo existe e é JSON válido
+      # ✅ Valida antes de publicar
       - name: Validate analyzer_notionsync.json
         if: always()
         run: |
@@ -84,7 +82,7 @@ jobs:
           fi
           node -e "JSON.parse(require('fs').readFileSync('analyzer_notionsync.json','utf8')); console.log('analyzer_notionsync.json OK');"
 
-      # ✅ NOVO: prepara pasta para publicar via gh-pages
+      # ✅ Prepara payload de publish
       - name: Prepare gh-pages payload
         if: always()
         run: |
@@ -93,7 +91,7 @@ jobs:
           cp analyzer_notionsync.json .publish/analyzer_notionsync.json
           echo "OK" > .publish/health.txt
 
-      # ✅ NOVO: publica no branch gh-pages (URL fixo pra fetch no outro repo)
+      # ✅ Publica em gh-pages (endpoint estável pro outro repo)
       - name: Publish analyzer_notionsync.json to gh-pages
         if: always()
         uses: peaceiris/actions-gh-pages@v4
@@ -103,7 +101,7 @@ jobs:
           publish_dir: .publish
           force_orphan: true
 
-      # (mantido) disparar workflow no repositório do TS4 Mod Analyzer
+      # Mantido: dispara workflow no repo do Analyzer
       - name: Trigger analyzer merge workflow
         if: success()
         env:
