@@ -2,10 +2,18 @@ name: Sync Notion Priority to TickTick
 
 on:
   push:
-    branches: [ main ]
   schedule:
     - cron: "*/5 * * * *"
   workflow_dispatch:
+
+# ✅ Evita fila e garante "sempre o mais recente" a cada 5 min
+concurrency:
+  group: sync-priority
+  cancel-in-progress: true
+
+# ✅ Necessário para publicar em gh-pages
+permissions:
+  contents: write
 
 jobs:
   sync:
@@ -26,7 +34,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: "20"
 
       - name: Install dependencies
         run: |
@@ -57,3 +65,52 @@ jobs:
         with:
           path: cache.json
           key: notion-ticktick-cache-${{ github.run_number }}
+
+      # (mantido) enviar analyzer_notionsync.json como artifact (opcional)
+      - name: Upload analyzer_notionsync artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: analyzer_notionsync
+          path: analyzer_notionsync.json
+
+      # ✅ NOVO: valida se o arquivo existe e é JSON válido
+      - name: Validate analyzer_notionsync.json
+        if: always()
+        run: |
+          if [ ! -f analyzer_notionsync.json ]; then
+            echo "analyzer_notionsync.json missing"
+            exit 1
+          fi
+          node -e "JSON.parse(require('fs').readFileSync('analyzer_notionsync.json','utf8')); console.log('analyzer_notionsync.json OK');"
+
+      # ✅ NOVO: prepara pasta para publicar via gh-pages
+      - name: Prepare gh-pages payload
+        if: always()
+        run: |
+          rm -rf .publish
+          mkdir -p .publish
+          cp analyzer_notionsync.json .publish/analyzer_notionsync.json
+          echo "OK" > .publish/health.txt
+
+      # ✅ NOVO: publica no branch gh-pages (URL fixo pra fetch no outro repo)
+      - name: Publish analyzer_notionsync.json to gh-pages
+        if: always()
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_branch: gh-pages
+          publish_dir: .publish
+          force_orphan: true
+
+      # (mantido) disparar workflow no repositório do TS4 Mod Analyzer
+      - name: Trigger analyzer merge workflow
+        if: success()
+        env:
+          GH_TOKEN: ${{ secrets.PERSONAL_ACCESS_TOKEN }}
+        run: |
+          curl -X POST \
+            -H "Accept: application/vnd.github+json" \
+            -H "Authorization: Bearer ${GH_TOKEN}" \
+            https://api.github.com/repos/thebossrrpg/Thesims4modanalyzer/dispatches \
+            -d '{"event_type":"update-notion-pages"}'
