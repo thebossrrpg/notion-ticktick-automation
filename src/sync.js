@@ -21,10 +21,13 @@ const TICKTICK_LISTS = {
   "2": process.env.TICKTICK_LIST_PRIORITY_2,
   "3": process.env.TICKTICK_LIST_PRIORITY_3,
   "4": process.env.TICKTICK_LIST_PRIORITY_4,
-  "5": process.env.TICKTICK_LIST_PRIORITY_5,
+  "5": process.env.TICKTICK_LIST_PRIORITY_5
 };
 
 const CACHE_FILE = path.join(__dirname, "..", "cache.json");
+
+// Novo: saída para o Analyzer (TS4 Mod Analyzer)
+const ANALYZER_FILE = path.join(__dirname, "..", "analyzer_notionsync.json");
 
 // Rate limit settings
 const MAX_PER_RUN = 90; // máximo de tasks criadas por execução
@@ -71,7 +74,7 @@ async function getNotionPages() {
     while (true) {
       const response = await notion.databases.query({
         database_id: NOTION_DATABASE_ID,
-        start_cursor: cursor,
+        start_cursor: cursor
       });
 
       allResults.push(...response.results);
@@ -178,13 +181,13 @@ async function createTickTickTask(finalTitle, listId, pageId) {
       "https://api.ticktick.com/open/v1/task",
       {
         title: finalTitle,
-        projectId: listId,
+        projectId: listId
       },
       {
         headers: {
           Authorization: `Bearer ${TICKTICK_ACCESS_TOKEN}`,
-          "Content-Type": "application/json",
-        },
+          "Content-Type": "application/json"
+        }
       }
     );
 
@@ -207,6 +210,48 @@ async function createTickTickTask(finalTitle, listId, pageId) {
     throw error;
   }
 }
+
+// ===== NOVO: export para o TS4 Mod Analyzer =====
+
+// Constrói objeto no formato esperado pelo Analyzer
+function buildAnalyzerPagesExport(pages) {
+  const out = { pages: {} };
+
+  for (const page of pages) {
+    const pageId = page.id;
+    const title = getPageTitle(page);
+    const url = page.url || null;
+
+    out.pages[pageId] = {
+      notion_id: pageId,
+      url,
+      title,
+      filename: title,
+      creator: null, // pode ser preenchido com uma propriedade "Creator" no futuro
+      created_time: page.created_time || null,
+      last_edited_time: page.last_edited_time || null
+    };
+  }
+
+  return out;
+}
+
+// Salva export pro Analyzer
+async function saveAnalyzerExport(pages) {
+  try {
+    const data = buildAnalyzerPagesExport(pages);
+    await fs.writeFile(ANALYZER_FILE, JSON.stringify(data, null, 2), "utf8");
+    console.log(
+      `Analyzer export written to ${ANALYZER_FILE} with ${Object.keys(
+        data.pages
+      ).length} pages`
+    );
+  } catch (e) {
+    console.error("Error writing analyzer_notionsync.json:", e.message);
+  }
+}
+
+// ===== MAIN =====
 
 async function main() {
   try {
@@ -311,6 +356,9 @@ async function main() {
 
     // Save updated cache
     await saveCache(cache);
+
+    // Novo: exportar todas as páginas para o Analyzer
+    await saveAnalyzerExport(pages);
 
     console.log(
       `Sync completed. ${changesDetected} tasks created, ${createdThisRun} in this run.`
