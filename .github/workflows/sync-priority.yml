@@ -7,6 +7,13 @@ on:
     - cron: "*/5 * * * *"
   workflow_dispatch:
 
+permissions:
+  contents: write
+
+concurrency:
+  group: sync-priority
+  cancel-in-progress: true
+
 jobs:
   sync:
     runs-on: ubuntu-latest
@@ -26,7 +33,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: "20"
 
       - name: Install dependencies
         run: |
@@ -50,6 +57,43 @@ jobs:
           PAYLOAD: ${{ toJSON(github.event.client_payload) }}
         run: |
           node src/sync.js
+
+      # ----------------------------
+      # Publish analyzer_notionsync.json (GitHub Pages via gh-pages)
+      # ----------------------------
+      - name: Locate analyzer_notionsync.json
+        run: |
+          set -e
+          if [ -f "analyzer_notionsync.json" ]; then
+            echo "FOUND_PATH=analyzer_notionsync.json" >> $GITHUB_ENV
+          elif [ -f "src/analyzer_notionsync.json" ]; then
+            echo "FOUND_PATH=src/analyzer_notionsync.json" >> $GITHUB_ENV
+          else
+            echo "ERROR: analyzer_notionsync.json not found (checked ./analyzer_notionsync.json and ./src/analyzer_notionsync.json)"
+            echo "TIP: make sure src/sync.js writes analyzer_notionsync.json to one of these locations."
+            exit 1
+          fi
+
+      - name: Validate analyzer_notionsync.json
+        run: |
+          set -e
+          node -e "const fs=require('fs'); const p=process.env.FOUND_PATH; const raw=fs.readFileSync(p,'utf8'); JSON.parse(raw); console.log('JSON OK:', p, 'bytes=', raw.length);"
+
+      - name: Prepare publish dir
+        run: |
+          set -e
+          rm -rf .publish
+          mkdir -p .publish
+          cp "${FOUND_PATH}" .publish/analyzer_notionsync.json
+          echo "OK" > .publish/health.txt
+
+      - name: Publish to gh-pages
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_branch: gh-pages
+          publish_dir: .publish
+          force_orphan: true
 
       - name: Save cache.json
         if: always()
