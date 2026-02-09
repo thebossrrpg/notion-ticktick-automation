@@ -122,11 +122,7 @@ function getPageTitle(page) {
       page.properties.Title ||
       Object.values(page.properties).find((p) => p.type === "title");
 
-    if (
-      !titleProperty ||
-      !titleProperty.title ||
-      titleProperty.title.length === 0
-    ) {
+    if (!titleProperty || !titleProperty.title || titleProperty.title.length === 0) {
       return "Untitled";
     }
 
@@ -136,33 +132,26 @@ function getPageTitle(page) {
   }
 }
 
- function buildAnalyzerPagesExport(pages) {
-   const out = { pages: {} };
+// Get URL property (URL do MOD, não o link interno do Notion)
+function getPageUrlProperty(page) {
+  try {
+    const urlProperty = page.properties.URL || page.properties.Url || page.properties.Link;
+    if (!urlProperty) return null;
 
-   for (const page of pages) {
-     const pageId = page.id;
-     const title = getPageTitle(page);
--    const url = page.url || null;
-+    // ✅ URL do MOD (propriedade da database), não o link interno do Notion
-+    const urlProp = getPageUrlProperty(page);
-+    const url = (typeof urlProp === "string" && urlProp.trim().length > 0)
-+      ? urlProp.trim()
-+      : null;
+    if (urlProperty.type === "url") {
+      return urlProperty.url;
+    }
 
-     out.pages[pageId] = {
-       notion_id: pageId,
-       url,
-       title,
-       filename: title,
-       creator: null, // pode ser preenchido com uma propriedade "Creator" no futuro
-       created_time: page.created_time || null,
-       last_edited_time: page.last_edited_time || null
-     };
-   }
+    // Fallback se for texto simples
+    if (urlProperty.type === "rich_text" && urlProperty.rich_text.length > 0) {
+      return urlProperty.rich_text.map((t) => t.plain_text).join("");
+    }
 
-   return out;
- }
-
+    return null;
+  } catch (error) {
+    return null;
+  }
+}
 
 // Sanitize title: mantém só alfanuméricos (incluindo acentos) e espaço
 function sanitizeTitle(rawTitle) {
@@ -222,7 +211,13 @@ function buildAnalyzerPagesExport(pages) {
   for (const page of pages) {
     const pageId = page.id;
     const title = getPageTitle(page);
-    const url = page.url || null;
+
+    // ✅ URL do MOD (propriedade da database), não o link interno do Notion
+    const urlProp = getPageUrlProperty(page);
+    const url =
+      typeof urlProp === "string" && urlProp.trim().length > 0
+        ? urlProp.trim()
+        : null;
 
     out.pages[pageId] = {
       notion_id: pageId,
@@ -244,9 +239,7 @@ async function saveAnalyzerExport(pages) {
     const data = buildAnalyzerPagesExport(pages);
     await fs.writeFile(ANALYZER_FILE, JSON.stringify(data, null, 2), "utf8");
     console.log(
-      `Analyzer export written to ${ANALYZER_FILE} with ${Object.keys(
-        data.pages
-      ).length} pages`
+      `Analyzer export written to ${ANALYZER_FILE} with ${Object.keys(data.pages).length} pages`
     );
   } catch (e) {
     console.error("Error writing analyzer_notionsync.json:", e.message);
@@ -304,9 +297,7 @@ async function main() {
 
       // Limite por execução
       if (createdThisRun >= MAX_PER_RUN) {
-        console.log(
-          "Reached MAX_PER_RUN, stopping new TickTick tasks for this run."
-        );
+        console.log("Reached MAX_PER_RUN, stopping new TickTick tasks for this run.");
         break;
       }
 
@@ -324,9 +315,7 @@ async function main() {
           const urlProp = getPageUrlProperty(page);
 
           const cleanBase = sanitizeTitle(baseTitle);
-          const finalTitle = urlProp
-            ? `[${cleanBase}] (${urlProp})`
-            : cleanBase;
+          const finalTitle = urlProp ? `[${cleanBase}] (${urlProp})` : cleanBase;
 
           try {
             await createTickTickTask(finalTitle, listId, pageId);
@@ -346,9 +335,7 @@ async function main() {
             await delay(DELAY_BETWEEN_TASKS_MS);
           }
         } else {
-          console.warn(
-            `No list ID configured for priority: ${currentPriority}`
-          );
+          console.warn(`No list ID configured for priority: ${currentPriority}`);
         }
 
         // Update cache
@@ -362,9 +349,7 @@ async function main() {
     // Novo: exportar todas as páginas para o Analyzer
     await saveAnalyzerExport(pages);
 
-    console.log(
-      `Sync completed. ${changesDetected} tasks created, ${createdThisRun} in this run.`
-    );
+    console.log(`Sync completed. ${changesDetected} tasks created, ${createdThisRun} in this run.`);
   } catch (error) {
     console.error("Error in main process:", error);
     process.exit(1);
