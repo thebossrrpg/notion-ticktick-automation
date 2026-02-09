@@ -136,31 +136,33 @@ function getPageTitle(page) {
   }
 }
 
-// Get URL property
-function getPageUrlProperty(page) {
-  try {
-    const urlProperty =
-      page.properties.URL || page.properties.Url || page.properties.Link;
+ function buildAnalyzerPagesExport(pages) {
+   const out = { pages: {} };
 
-    if (!urlProperty) return null;
+   for (const page of pages) {
+     const pageId = page.id;
+     const title = getPageTitle(page);
+-    const url = page.url || null;
++    // ✅ URL do MOD (propriedade da database), não o link interno do Notion
++    const urlProp = getPageUrlProperty(page);
++    const url = (typeof urlProp === "string" && urlProp.trim().length > 0)
++      ? urlProp.trim()
++      : null;
 
-    if (urlProperty.type === "url") {
-      return urlProperty.url;
-    }
+     out.pages[pageId] = {
+       notion_id: pageId,
+       url,
+       title,
+       filename: title,
+       creator: null, // pode ser preenchido com uma propriedade "Creator" no futuro
+       created_time: page.created_time || null,
+       last_edited_time: page.last_edited_time || null
+     };
+   }
 
-    // Fallback se for texto simples
-    if (
-      urlProperty.type === "rich_text" &&
-      urlProperty.rich_text.length > 0
-    ) {
-      return urlProperty.rich_text.map((t) => t.plain_text).join("");
-    }
+   return out;
+ }
 
-    return null;
-  } catch (error) {
-    return null;
-  }
-}
 
 // Sanitize title: mantém só alfanuméricos (incluindo acentos) e espaço
 function sanitizeTitle(rawTitle) {
