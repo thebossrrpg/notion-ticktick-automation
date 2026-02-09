@@ -252,104 +252,116 @@ async function main() {
   try {
     console.log("Starting sync process...");
 
-    if (!TICKTICK_ACCESS_TOKEN) {
-      console.error("TICKTICK_ACCESS_TOKEN is not set. Aborting.");
-      process.exit(1);
+    // ✅ Não aborta mais: entra em "export-only mode"
+    const exportOnlyMode = !TICKTICK_ACCESS_TOKEN;
+    if (exportOnlyMode) {
+      console.warn(
+        "⚠️ TICKTICK_ACCESS_TOKEN is not set. Running in EXPORT-ONLY mode (no TickTick tasks will be created)."
+      );
     }
 
-    // Load cache
-    const cache = await loadCache();
-    console.log(`Loaded cache with ${Object.keys(cache).length} entries`);
-
-    // Get all pages from Notion
+    // Get all pages from Notion (sempre necessário, mesmo em export-only)
     const pages = await getNotionPages();
     console.log(`Found ${pages.length} pages in Notion`);
 
-    let changesDetected = 0;
-    let createdThisRun = 0;
+    // Se estamos em export-only mode, não precisamos de cache nem de TickTick.
+    if (!exportOnlyMode) {
+      // Load cache
+      const cache = await loadCache();
+      console.log(`Loaded cache with ${Object.keys(cache).length} entries`);
 
-    // Check each page for priority changes
-    for (const page of pages) {
-      const pageId = page.id;
+      let changesDetected = 0;
+      let createdThisRun = 0;
 
-      const currentPriorityRaw = getPriority(page);
-      const currentPriority =
-        typeof currentPriorityRaw === "string"
-          ? currentPriorityRaw.trim()
-          : currentPriorityRaw;
+      // Check each page for priority changes
+      for (const page of pages) {
+        const pageId = page.id;
 
-      const previousPriority = cache[pageId];
+        const currentPriorityRaw = getPriority(page);
+        const currentPriority =
+          typeof currentPriorityRaw === "string"
+            ? currentPriorityRaw.trim()
+            : currentPriorityRaw;
 
-      // DEBUG: ver o que está vindo
-      console.log(
-        "DEBUG priority",
-        pageId,
-        "current:",
-        JSON.stringify(currentPriority),
-        "previous:",
-        JSON.stringify(previousPriority)
-      );
+        const previousPriority = cache[pageId];
 
-      // Skip if no priority set
-      if (currentPriority === null) {
-        continue;
-      }
-
-      // Limite por execução
-      if (createdThisRun >= MAX_PER_RUN) {
-        console.log("Reached MAX_PER_RUN, stopping new TickTick tasks for this run.");
-        break;
-      }
-
-      // Criar tarefa sempre que a prioridade atual for diferente da registrada no cache
-      if (currentPriority !== previousPriority) {
+        // DEBUG: ver o que está vindo
         console.log(
-          `Priority changed for page ${pageId}: ${previousPriority} -> ${currentPriority}`
+          "DEBUG priority",
+          pageId,
+          "current:",
+          JSON.stringify(currentPriority),
+          "previous:",
+          JSON.stringify(previousPriority)
         );
 
-        // Get list ID for this priority
-        const listId = TICKTICK_LISTS[currentPriority];
-
-        if (listId) {
-          const baseTitle = getPageTitle(page);
-          const urlProp = getPageUrlProperty(page);
-
-          const cleanBase = sanitizeTitle(baseTitle);
-          const finalTitle = urlProp ? `[${cleanBase}] (${urlProp})` : cleanBase;
-
-          try {
-            await createTickTickTask(finalTitle, listId, pageId);
-            createdThisRun++;
-            changesDetected++;
-          } catch (error) {
-            console.error(
-              `TickTick returned error for page ${pageId} (priority ${currentPriority}). Skipping and continuing.`
-            );
-          }
-
-          // Delay entre tasks para suavizar chamadas
-          if (createdThisRun < MAX_PER_RUN) {
-            console.log(
-              `Waiting ${DELAY_BETWEEN_TASKS_MS / 1000} seconds before next task...`
-            );
-            await delay(DELAY_BETWEEN_TASKS_MS);
-          }
-        } else {
-          console.warn(`No list ID configured for priority: ${currentPriority}`);
+        // Skip if no priority set
+        if (currentPriority === null) {
+          continue;
         }
 
-        // Update cache
-        cache[pageId] = currentPriority;
+        // Limite por execução
+        if (createdThisRun >= MAX_PER_RUN) {
+          console.log("Reached MAX_PER_RUN, stopping new TickTick tasks for this run.");
+          break;
+        }
+
+        // Criar tarefa sempre que a prioridade atual for diferente da registrada no cache
+        if (currentPriority !== previousPriority) {
+          console.log(
+            `Priority changed for page ${pageId}: ${previousPriority} -> ${currentPriority}`
+          );
+
+          // Get list ID for this priority
+          const listId = TICKTICK_LISTS[currentPriority];
+
+          if (listId) {
+            const baseTitle = getPageTitle(page);
+            const urlProp = getPageUrlProperty(page);
+
+            const cleanBase = sanitizeTitle(baseTitle);
+            const finalTitle = urlProp ? `[${cleanBase}] (${urlProp})` : cleanBase;
+
+            try {
+              await createTickTickTask(finalTitle, listId, pageId);
+              createdThisRun++;
+              changesDetected++;
+            } catch (error) {
+              console.error(
+                `TickTick returned error for page ${pageId} (priority ${currentPriority}). Skipping and continuing.`
+              );
+            }
+
+            // Delay entre tasks para suavizar chamadas
+            if (createdThisRun < MAX_PER_RUN) {
+              console.log(
+                `Waiting ${DELAY_BETWEEN_TASKS_MS / 1000} seconds before next task...`
+              );
+              await delay(DELAY_BETWEEN_TASKS_MS);
+            }
+          } else {
+            console.warn(`No list ID configured for priority: ${currentPriority}`);
+          }
+
+          // Update cache
+          cache[pageId] = currentPriority;
+        }
       }
+
+      // Save updated cache
+      await saveCache(cache);
+
+      console.log(
+        `TickTick sync completed. ${changesDetected} tasks created, ${createdThisRun} in this run.`
+      );
+    } else {
+      console.log("Export-only mode: skipping TickTick sync + cache updates.");
     }
 
-    // Save updated cache
-    await saveCache(cache);
-
-    // Novo: exportar todas as páginas para o Analyzer
+    // ✅ Sempre exporta, independente de TickTick
     await saveAnalyzerExport(pages);
 
-    console.log(`Sync completed. ${changesDetected} tasks created, ${createdThisRun} in this run.`);
+    console.log("Done.");
   } catch (error) {
     console.error("Error in main process:", error);
     process.exit(1);
